@@ -28,6 +28,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	booba "github.com/NimbleMarkets/go-booba"
 
 	"github.com/NimbleMarkets/ntcharts-svg/svg"
 	"github.com/NimbleMarkets/ntcharts/v2/picture"
@@ -245,7 +246,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if _, err := tea.NewProgram(initialModel(cfg)).Run(); err != nil {
+	// booba.Run runs the Bubble Tea program normally on native builds
+	// and bridges it to the booba terminal emulator under GOOS=js, so
+	// the same example binary powers both the CLI and the WASM demo.
+	if err := booba.Run(initialModel(cfg)); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

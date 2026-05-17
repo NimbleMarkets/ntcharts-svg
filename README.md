@@ -8,7 +8,10 @@
 
 `ntcharts-svg` is a [Bubble Tea](https://github.com/charmbracelet/bubbletea) widget that makes SVG documents first-class citizens in terminal UIs (and WASM/browser builds). It pairs [`oksvg`](https://github.com/srwiley/oksvg) + [`rasterx`](https://github.com/srwiley/rasterx) for **pure-Go** SVG rasterization with [`ntcharts/v2/picture`](https://github.com/NimbleMarkets/ntcharts) for image rendering — half-block glyphs anywhere, full-resolution Kitty graphics on terminals that support them (Kitty, Ghostty, WezTerm).
 
+[**Try out the live WASM demo.**](https://nimblemarkets.github.io/ntcharts-svg)
+
 It is the sibling of [`ntcharts-pdf`](https://github.com/NimbleMarkets/ntcharts-pdf) and mirrors its architecture. The key difference: because the SVG rasterizer is pure Go, image rendering needs **no CGO, no system dependencies, and no JS bridge** — it works identically on native, browser-WASM, and WASI builds.
+
 
 The widget does double duty:
 
@@ -64,6 +67,14 @@ A fuller demo lives at [`examples/svgview`](./examples/svgview/main.go) — adds
 task build-ex-svgview
 ./bin/ntcharts-svgview path/to/your.svg   # or no argument for the embedded sample
 ```
+
+The same example compiles to WebAssembly and runs in the browser via [`booba`](https://github.com/NimbleMarkets/go-booba) — no JS bridge required, since the rasterizer is pure Go. Build and serve it locally:
+
+```sh
+task serve-wasm-site   # builds web/app.wasm, stages booba assets, serves at :8000
+```
+
+`task build-wasm-site` alone produces the deployable `web/` directory; the `.github/workflows/pages.yml` workflow publishes it to GitHub Pages on every push to `main`.
 
 ## Modes
 

@@ -44,9 +44,10 @@ tasks:
 
   clean:
     desc: 'Clean built examples'
+    deps:
+      - clean-wasm-site
     cmds:
       - rm -f bin/ntcharts-svgview
-      - rm -f web/app.wasm
       - rm -rf .task
 
 ###############################################################################
@@ -72,20 +73,40 @@ tasks:
       - bin/ntcharts-svgview
 
 ###############################################################################
-# WASM
+# Demo website via booba
 #
 # The default rasterizer (oksvg/rasterx) is pure Go, so the svgview
 # example — unlike the sibling ntcharts-pdf widget — needs no JS bridge
-# to render images in the browser.
+# to render images in the browser. booba-assets stages wasm_exec.js and
+# the booba terminal runtime into web/ alongside the WASM binary.
 
-  build-wasm:
-    desc: 'Build the svgview example as a WASM binary'
-    deps:
-      - go-tidy
+  build-wasm-site:
+    desc: 'Build the WASM demo site into web/'
+    deps: [go-tidy]
     cmds:
       - GOARCH=wasm GOOS=js go build -o web/app.wasm ./examples/svgview/
+      - go tool booba-assets web/
     generates:
       - web/app.wasm
+
+  serve-wasm-site:
+    desc: 'Serve web/ at http://localhost:8000/ntcharts-svg/ (matches GH Pages prefix)'
+    deps: [build-wasm-site]
+    vars:
+      SERVE_DIR: /tmp/ntcharts-svg-site
+    cmds:
+      - mkdir -p {{.SERVE_DIR}}
+      - rm -f {{.SERVE_DIR}}/ntcharts-svg
+      - ln -sfn "$(pwd)/web" {{.SERVE_DIR}}/ntcharts-svg
+      - echo 'Serving at http://localhost:8000/ntcharts-svg/'
+      - cd {{.SERVE_DIR}} && python3 -m http.server 8000
+
+  clean-wasm-site:
+    desc: 'Remove generated WASM demo site artifacts'
+    cmds:
+      - rm -rf web/booba web/ghostty-web
+      - rm -f web/wasm_exec.js
+      - rm -f web/app.wasm
 
 ###############################################################################
 # Demo gif (note: Kitty graphics do not render in VHS — this captures
