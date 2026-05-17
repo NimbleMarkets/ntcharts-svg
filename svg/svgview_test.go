@@ -1,0 +1,215 @@
+package svg
+
+import (
+	"os"
+	"testing"
+)
+
+// sampleSVG is a small well-formed document exercising most element
+// kinds the metadata scanner reports.
+var sampleSVG = []byte(`<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">
+  <title>unit fixture</title>
+  <desc>fixture description</desc>
+  <rect x="0" y="0" width="200" height="100" fill="#222"/>
+  <circle cx="50" cy="50" r="20" fill="red"/>
+  <circle cx="120" cy="50" r="20" fill="blue"/>
+  <line x1="0" y1="0" x2="200" y2="100" stroke="white"/>
+</svg>`)
+
+// loadData runs SetSVGData synchronously and feeds the resulting message
+// back through Update, returning the post-load Model.
+func loadData(t *testing.T, m Model, name string, data []byte) Model {
+	t.Helper()
+	cmd := m.SetSVGData(name, data)
+	if cmd == nil {
+		t.Fatal("SetSVGData returned nil Cmd")
+	}
+	m, _ = m.Update(cmd())
+	return m
+}
+
+// rasterize runs Reload synchronously, feeding the renderedMsg back so
+// m.sourceImage is populated.
+func rasterize(t *testing.T, m Model) Model {
+	t.Helper()
+	cmd := m.Reload()
+	if cmd == nil {
+		t.Fatal("Reload returned nil Cmd")
+	}
+	m, _ = m.Update(cmd())
+	return m
+}
+
+func TestLoadSampleData(t *testing.T) {
+	m := loadData(t, New(80, 24), "fixture.svg", sampleSVG)
+
+	if m.Err() != nil {
+		t.Fatalf("unexpected load error: %v", m.Err())
+	}
+	if got := m.Name(); got != "fixture.svg" {
+		t.Errorf("Name() = %q, want fixture.svg", got)
+	}
+	if !m.HasRenderer() {
+		t.Errorf("HasRenderer() = false, want true (default oksvg factory)")
+	}
+	w, h := m.ViewBox()
+	if w != 200 || h != 100 {
+		t.Errorf("ViewBox() = %g×%g, want 200×100", w, h)
+	}
+	if got := m.Title(); got != "unit fixture" {
+		t.Errorf("Title() = %q, want %q", got, "unit fixture")
+	}
+	doc := m.Document()
+	if doc == nil {
+		t.Fatal("Document() = nil after load")
+	}
+	if n := doc.ElementCount("circle"); n != 2 {
+		t.Errorf("circle count = %d, want 2", n)
+	}
+	if n := doc.ElementCount("rect"); n != 1 {
+		t.Errorf("rect count = %d, want 1", n)
+	}
+}
+
+func TestEmptyDataIsError(t *testing.T) {
+	m := loadData(t, New(40, 10), "empty.svg", []byte{})
+	if m.Err() == nil {
+		t.Fatal("expected error loading empty data, got nil")
+	}
+	if m.Document() != nil {
+		t.Error("Document() should be nil after a failed load")
+	}
+}
+
+func TestBrokenSVGIsError(t *testing.T) {
+	m := loadData(t, New(40, 10), "broken.svg", []byte("not xml { ["))
+	if m.Err() == nil {
+		t.Fatal("expected error loading non-SVG data, got nil")
+	}
+}
+
+func TestRasterizeProducesImage(t *testing.T) {
+	m := loadData(t, New(80, 24), "fixture.svg", sampleSVG)
+	m = rasterize(t, m)
+	if m.Err() != nil {
+		t.Fatalf("unexpected render error: %v", m.Err())
+	}
+	if m.sourceImage == nil {
+		t.Fatal("sourceImage nil after rasterize")
+	}
+	b := m.sourceImage.Bounds()
+	// 200×100 viewBox → aspect 2:1; the longer edge should hit the
+	// render edge default.
+	if b.Dx() != b.Dy()*2 {
+		t.Errorf("rasterized bounds %v do not preserve 2:1 aspect", b)
+	}
+}
+
+func TestToggleMode(t *testing.T) {
+	m := New(80, 24)
+	if m.Mode() != RasterMode {
+		t.Fatalf("default mode = %v, want RasterMode", m.Mode())
+	}
+	m.ToggleMode()
+	if m.Mode() != InfoMode {
+		t.Errorf("after toggle, mode = %v, want InfoMode", m.Mode())
+	}
+	m.ToggleMode()
+	if m.Mode() != RasterMode {
+		t.Errorf("after second toggle, mode = %v, want RasterMode", m.Mode())
+	}
+}
+
+func TestZoomPan(t *testing.T) {
+	m := loadData(t, New(80, 24), "fixture.svg", sampleSVG)
+	m = rasterize(t, m)
+
+	if m.Zoom() != 0 {
+		t.Fatalf("initial zoom = %d, want 0", m.Zoom())
+	}
+	// Pan at zoom 0 is a no-op.
+	if cmd := m.PanRight(); cmd != nil {
+		t.Error("PanRight at zoom 0 should return nil Cmd")
+	}
+	for i := 0; i < 3; i++ {
+		m.ZoomIn()
+	}
+	if m.Zoom() != 3 {
+		t.Errorf("zoom after 3 ZoomIn = %d, want 3", m.Zoom())
+	}
+	// Panning while zoomed must keep the viewport inside [0,1].
+	for i := 0; i < 20; i++ {
+		m.PanRight()
+		m.PanDown()
+	}
+	vp := m.viewportSize()
+	if m.panX < 0 || m.panX+vp > 1.0001 || m.panY < 0 || m.panY+vp > 1.0001 {
+		t.Errorf("viewport escaped bounds: panX=%g panY=%g vp=%g", m.panX, m.panY, vp)
+	}
+	m.ResetView()
+	if m.Zoom() != 0 || m.panX != 0 || m.panY != 0 {
+		t.Errorf("ResetView left zoom=%d pan=(%g,%g)", m.Zoom(), m.panX, m.panY)
+	}
+}
+
+func TestZoomCapped(t *testing.T) {
+	m := loadData(t, New(80, 24), "fixture.svg", sampleSVG)
+	m = rasterize(t, m)
+	for i := 0; i < 50; i++ {
+		m.ZoomIn()
+	}
+	if m.Zoom() != zoomMax {
+		t.Errorf("zoom = %d after many ZoomIn, want cap %d", m.Zoom(), zoomMax)
+	}
+}
+
+func TestStaleLoadDropped(t *testing.T) {
+	m := New(80, 24)
+	// Build an old load Cmd, then supersede it before delivering.
+	old := m.SetSVGData("old.svg", sampleSVG)
+	m.SetSVGData("new.svg", sampleSVG) // bumps loadGen
+	m, _ = m.Update(old())
+	if m.Name() != "new.svg" {
+		t.Errorf("stale load was accepted: Name() = %q", m.Name())
+	}
+}
+
+func TestViewPlaceholders(t *testing.T) {
+	m := New(40, 8)
+	if got := m.View().Content; got == "" {
+		t.Error("View() with no document produced empty content")
+	}
+	m = loadData(t, New(40, 8), "fixture.svg", sampleSVG)
+	m.ToggleMode() // InfoMode renders without a raster
+	if got := m.View().Content; got == "" {
+		t.Error("InfoMode View() produced empty content")
+	}
+}
+
+func TestFitDims(t *testing.T) {
+	// 2:1 aspect, generous max — should fill width.
+	w, h := fitDims(200, 100, 1000, 1000, 0, 0)
+	if w != 1000 || h != 500 {
+		t.Errorf("fitDims wide = %d×%d, want 1000×500", w, h)
+	}
+	// Pixel budget clamps area.
+	w, h = fitDims(100, 100, 10000, 10000, 0, 10000)
+	if w*h > 10000 {
+		t.Errorf("fitDims ignored pixel budget: %d×%d = %d px", w, h, w*h)
+	}
+	// Edge clamp.
+	w, h = fitDims(100, 100, 10000, 10000, 256, 0)
+	if w > 256 || h > 256 {
+		t.Errorf("fitDims ignored edge cap: %d×%d", w, h)
+	}
+	// Degenerate input still yields a valid bitmap.
+	w, h = fitDims(0, 0, 0, 0, 0, 0)
+	if w < 1 || h < 1 {
+		t.Errorf("fitDims degenerate = %d×%d, want >= 1×1", w, h)
+	}
+}
+
+// TestMain keeps `go test` output quiet about the testdata dir absence
+// when run from unusual working directories.
+func TestMain(m *testing.M) { os.Exit(m.Run()) }

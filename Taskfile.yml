@@ -1,0 +1,104 @@
+# ntcharts-svg - Copyright (c) 2026 Neomantra Corp.
+
+version: '3'
+
+tasks:
+  default:
+    desc: 'Default task runs the "build" task'
+    deps:
+      - build
+
+  list:
+    desc: 'Lists available tasks'
+    cmds:
+      - task --list-all
+
+###############################################################################
+
+  go-tidy:
+    desc: 'Go tidy all the things'
+    run: once
+    cmds:
+      - go mod tidy
+
+  go-update:
+    desc: 'Go update all the dependencies'
+    run: once
+    cmds:
+      - go get -u ./...
+
+  test:
+    desc: 'Run all Go tests'
+    cmds:
+      - go test ./...
+
+  vet:
+    desc: 'Run go vet'
+    cmds:
+      - go vet ./...
+
+  build:
+    desc: 'Build all the things'
+    deps:
+      - build-examples
+
+  clean:
+    desc: 'Clean built examples'
+    cmds:
+      - rm -f bin/ntcharts-svgview
+      - rm -f web/app.wasm
+      - rm -rf .task
+
+###############################################################################
+# Examples
+
+  build-examples:
+    desc: 'Build all examples'
+    deps:
+      - build-ex-svgview
+
+  build-ex-svgview:
+    desc: 'Build the svgview example'
+    deps:
+      - go-tidy
+    cmds:
+      - go build -o bin/ntcharts-svgview ./examples/svgview
+    sources:
+      - svg/**/*.go
+      - examples/svgview/*.go
+      - examples/svgview/testdata/sample.svg
+      - go.mod
+    generates:
+      - bin/ntcharts-svgview
+
+###############################################################################
+# WASM
+#
+# The default rasterizer (oksvg/rasterx) is pure Go, so the svgview
+# example — unlike the sibling ntcharts-pdf widget — needs no JS bridge
+# to render images in the browser.
+
+  build-wasm:
+    desc: 'Build the svgview example as a WASM binary'
+    deps:
+      - go-tidy
+    cmds:
+      - GOARCH=wasm GOOS=js go build -o web/app.wasm ./examples/svgview/
+    generates:
+      - web/app.wasm
+
+###############################################################################
+# Demo gif (note: Kitty graphics do not render in VHS — this captures
+# the half-block path only; do a hand-made recording for Kitty demos).
+
+  vhs-validate:
+    desc: 'Validate vhs tape file'
+    cmds:
+      - vhs validate ./examples/svgview/demo.tape
+
+  vhs:
+    desc: 'Generate gif via vhs'
+    deps:
+      - build-ex-svgview
+    cmds:
+      - vhs --output ./examples/svgview/demo.gif ./examples/svgview/demo.tape

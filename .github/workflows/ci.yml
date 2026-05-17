@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions are pinned to commit SHAs (resolved from the version tag
+      # at pin time). The `# v<tag>` trailing comment is the human-
+      # readable version reference that Dependabot uses to drive bumps.
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+      - name: Build examples
+        run: go build ./...
+      - name: Build WASM
+        run: GOARCH=wasm GOOS=js go build ./examples/svgview/
