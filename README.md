@@ -101,7 +101,7 @@ type RendererFactory func(name string, data []byte) (Renderer, error)
 
 The factory is **bytes-first**: the widget reads file contents once (subject to `Limits.MaxFileBytes`) and hands the bytes to the factory, so custom factories never have to implement their own file I/O. Hosts that already have the bytes — an `//go:embed` blob, an HTTP response, a generated `Canvas` — skip the path round-trip via `sv.SetSVGData(name, data)` or `Config.InitialData` / `InitialName`.
 
-When `Config.RendererFactory` is nil, `NewWithConfig` installs `DefaultRendererFactory()`, backed by `oksvg`/`rasterx`. Bring-your-own renderers (resvg via CGO, a server-side rasterizer, a caching layer) plug in through the same interface. `Config.RenderEdge` (default 2000) sets the longer-edge resolution of the rasterized bitmap; zoom then crops into that bitmap.
+When `Config.RendererFactory` is nil, `NewWithConfig` installs `DefaultRendererFactory()`, backed by `oksvg`/`rasterx`. Bring-your-own renderers (resvg via CGO, a server-side rasterizer, a caching layer) plug in through the same interface. `Config.RenderEdge` (default 1024) sets the longer-edge resolution of the rasterized bitmap; zoom then crops into that bitmap.
 
 ### Loading APIs
 
@@ -171,7 +171,7 @@ SVG titles, descriptions, element names, and error messages can carry C0/C1 cont
 
 ## Known caveats
 
-- **Zoom crops a fixed-resolution bitmap; it does not re-rasterize.** The SVG is rasterized once at `Config.RenderEdge`; `ZoomIn` crops into that bitmap (the same chunky-pixel inspection model as `ntcharts-pdf`). True vector-sharp zoom — re-rasterizing the viewport sub-rectangle — is a planned enhancement; raise `RenderEdge` in the meantime for sharper zoomed detail.
+- **Zoom is vector-sharp.** With a document `Renderer` attached, `ZoomIn` / `PanLeft` (etc.) re-rasterize the viewport sub-rectangle via `Renderer.RenderRegion`, so zoomed-in views stay crisp at any depth rather than upscaling a fixed bitmap. Zoom 0 reuses the full-document bitmap (no re-render); each zoom/pan keypress at depth costs one rasterize. A host bitmap installed via `SetImage` has no renderer, so it still crops (chunky-pixel inspection) — there are no vectors to re-rasterize.
 - **`oksvg` supports a broad but not exhaustive slice of SVG.** Filters, advanced gradients, embedded fonts, and CSS-heavy documents may render approximately or skip elements (the parser runs in ignore-errors mode). For pixel-perfect fidelity, wire a custom `RendererFactory` around a stricter rasterizer.
 - **The immediate-mode `Canvas` is a writer, not a layout engine.** It emits exactly the elements you draw. Text is not measured — `text-anchor` positions runs, but you supply the coordinates. This keeps `Canvas` dependency-free and WASM-safe.
 - **`WriteSVG` / `WritePNG` do filesystem I/O** and will fail at runtime under `GOOS=js`. Use `ToSVG` / `Bytes` / `ToImage` in the browser.

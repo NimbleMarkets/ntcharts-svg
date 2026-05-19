@@ -254,6 +254,13 @@ func (m *Model) SetImage(img image.Image) tea.Cmd {
 	// caller-supplied bitmap when it lands in Update.
 	bump(m.loadGen)
 	bump(m.renderGen)
+	// Detach any document renderer: a host bitmap has no document, and
+	// a stale renderer left attached would re-rasterize the wrong SVG
+	// on the next zoom (render-on-zoom).
+	if m.cur != nil {
+		_ = m.cur.Close()
+		m.cur = nil
+	}
 	m.sourceImage = img
 	m.err = nil
 	return m.applyViewport()
@@ -447,10 +454,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.gen != *m.renderGen || msg.loadGen != *m.loadGen {
 			break // stale render or stale document
 		}
-		m.sourceImage = msg.img
 		m.err = nil
-		if c := m.applyViewport(); c != nil {
-			cmds = append(cmds, c)
+		if msg.region {
+			// A viewport re-render: display-only. The canonical
+			// full-document bitmap (Image(), zoom 0) is left untouched.
+			if c := m.pic.SetImage(msg.img); c != nil {
+				cmds = append(cmds, c)
+			}
+		} else {
+			// The full-document raster — the bitmap Image() exposes.
+			// Route through applyViewport so a zoom that happened while
+			// the load was in flight is still honored.
+			m.sourceImage = msg.img
+			if c := m.applyViewport(); c != nil {
+				cmds = append(cmds, c)
+			}
 		}
 
 	case renderErrMsg:
@@ -516,6 +534,29 @@ func (m *Model) renderCmd() tea.Cmd {
 			return renderErrMsg{err: err, gen: gen, loadGen: loadGen}
 		}
 		return renderedMsg{img: img, gen: gen, loadGen: loadGen}
+	}
+}
+
+// renderRegionCmd returns a Cmd that re-rasterizes just the current
+// viewport rectangle via the attached Renderer, giving vector-sharp
+// zoom instead of upscaling a crop of the fixed bitmap. Returns nil when
+// there is no Renderer. The result is a renderedMsg with region == true.
+func (m *Model) renderRegionCmd() tea.Cmd {
+	if m.cur == nil {
+		return nil
+	}
+	gen := bump(m.renderGen)
+	loadGen := *m.loadGen
+	r := m.cur
+	edge := m.cfg.RenderEdge
+	vp := m.viewportSize()
+	nx, ny := m.panX, m.panY
+	return func() tea.Msg {
+		img, err := r.RenderRegion(edge, edge, nx, ny, vp, vp)
+		if err != nil {
+			return renderErrMsg{err: err, gen: gen, loadGen: loadGen}
+		}
+		return renderedMsg{img: img, gen: gen, loadGen: loadGen, region: true}
 	}
 }
 

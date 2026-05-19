@@ -29,8 +29,16 @@ type Renderer interface {
 	// Render rasterizes the SVG into an RGBA bitmap that fits within
 	// maxW × maxH pixels while preserving the document's aspect ratio.
 	// The renderer may return a smaller image when its own resource
-	// caps (pixel budget, edge length) bind first.
+	// caps (pixel budget, edge length) bind first. Equivalent to
+	// RenderRegion over the full 0, 0, 1, 1 viewBox rectangle.
 	Render(maxW, maxH int) (image.Image, error)
+
+	// RenderRegion rasterizes only the sub-rectangle of the document
+	// given in normalized [0, 1] viewBox coordinates — top-left
+	// (nx, ny), size (nw, nh) — into a bitmap fitted to maxW × maxH.
+	// Re-rasterizing the region (rather than upscaling a crop of a
+	// fixed bitmap) keeps zoomed-in views vector-sharp.
+	RenderRegion(maxW, maxH int, nx, ny, nw, nh float64) (image.Image, error)
 
 	// ViewBox reports the document's intrinsic dimensions in user
 	// units (its viewBox, or width/height attributes, or the SVG
@@ -120,14 +128,31 @@ type oksvgRenderer struct {
 // ViewBox reports the parsed document's intrinsic dimensions.
 func (r *oksvgRenderer) ViewBox() (w, h float64) { return r.vbW, r.vbH }
 
-// Render rasterizes the icon into a bitmap fitted to maxW × maxH and
-// clamped by the renderer's pixel / edge budget.
-func (r *oksvgRenderer) Render(maxW, maxH int) (img image.Image, err error) {
+// Render rasterizes the whole icon into a bitmap fitted to maxW × maxH
+// and clamped by the renderer's pixel / edge budget. It is exactly
+// RenderRegion over the full 0, 0, 1, 1 viewBox rectangle.
+func (r *oksvgRenderer) Render(maxW, maxH int) (image.Image, error) {
+	return r.RenderRegion(maxW, maxH, 0, 0, 1, 1)
+}
+
+// RenderRegion rasterizes the sub-rectangle of the icon given in
+// normalized [0, 1] viewBox coords into a bitmap fitted to maxW × maxH
+// and clamped by the renderer's pixel / edge budget.
+func (r *oksvgRenderer) RenderRegion(maxW, maxH int, nx, ny, nw, nh float64) (img image.Image, err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.icon == nil {
 		return nil, errors.New("svg renderer closed")
 	}
+	if nw <= 0 {
+		nw = 1
+	}
+	if nh <= 0 {
+		nh = 1
+	}
+	// The region carries the document's aspect ratio (the viewport is a
+	// square fraction of an aspect-correct bitmap), so it fits into the
+	// budget exactly as a full render would.
 	w, h := fitDims(r.vbW, r.vbH, maxW, maxH, r.maxEdge, r.maxPixels)
 
 	defer func() {
@@ -138,7 +163,12 @@ func (r *oksvgRenderer) Render(maxW, maxH int) (img image.Image, err error) {
 	dst := image.NewRGBA(image.Rect(0, 0, w, h))
 	scanner := rasterx.NewScannerGV(w, h, dst, dst.Bounds())
 	raster := rasterx.NewDasher(w, h, scanner)
-	r.icon.SetTarget(0, 0, float64(w), float64(h))
+	// Map the whole viewBox onto a (w/nw) × (h/nh) rect, shifted so the
+	// requested sub-region's top-left lands on the bitmap origin;
+	// rasterx clips everything outside 0..w / 0..h for free.
+	fullW := float64(w) / nw
+	fullH := float64(h) / nh
+	r.icon.SetTarget(-nx*fullW, -ny*fullH, fullW, fullH)
 	r.icon.Draw(raster, 1.0)
 	return dst, nil
 }

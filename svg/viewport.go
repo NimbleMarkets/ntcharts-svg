@@ -96,10 +96,23 @@ func (m *Model) pan(dx, dy float64) tea.Cmd {
 	return m.applyViewport()
 }
 
-// applyViewport crops the source image to the current viewport and
-// hands the result to the embedded picture.Model for rendering. Returns
-// picture's SetImage Cmd unchanged.
+// applyViewport presents the current viewport (zoom, panX, panY).
+//
+// With a document Renderer attached it re-rasterizes the viewport
+// sub-rectangle for vector-sharp zoom — except at zoom 0, where the
+// region is the whole document and the full-document bitmap already in
+// hand is reused as-is. With no Renderer (a host bitmap installed via
+// SetImage) it falls back to cropping the pixels it has.
 func (m *Model) applyViewport() tea.Cmd {
+	if m.cur != nil {
+		if m.zoom == 0 {
+			if m.sourceImage == nil {
+				return nil
+			}
+			return m.pic.SetImage(m.sourceImage)
+		}
+		return m.renderRegionCmd()
+	}
 	if m.sourceImage == nil {
 		return nil
 	}

@@ -3,6 +3,8 @@
 ## v0.1.2 (2026-05-19)
 
  * Add `Image()` getter to extract the rendered SVG image.  Handy for caching.
+ * Implement `Renderer.RenderRegion` for vector-sharp zoom
+ * Reduce `DefaultRenderEdge` to `1024` to optimize rasterization performance
 
 ## v0.1.1 (2026-05-17)
 

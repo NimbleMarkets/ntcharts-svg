@@ -123,13 +123,16 @@ type svgErrMsg struct {
 	gen uint64
 }
 
-// renderedMsg is delivered when a Renderer.Render call succeeds. gen and
-// loadGen are checked against the Model's counters in Update to drop
-// stale results.
+// renderedMsg is delivered when a Renderer.Render or RenderRegion call
+// succeeds. gen and loadGen are checked against the Model's counters in
+// Update to drop stale results. region is true for a viewport
+// re-render (RenderRegion) — display-only output that must not replace
+// the canonical full-document bitmap exposed by Image().
 type renderedMsg struct {
 	img     image.Image
 	gen     uint64
 	loadGen uint64
+	region  bool
 }
 
 // renderErrMsg is delivered when a Renderer.Render call fails.
