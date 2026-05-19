@@ -51,7 +51,12 @@ const (
 // of the rasterized bitmap when Config.RenderEdge is unset. The SVG is
 // drawn once at this resolution; ZoomIn then crops into the bitmap, so a
 // larger value buys sharper zoomed inspection at the cost of memory.
-const DefaultRenderEdge = 2000
+//
+// Rasterize cost scales with pixel area: 1024 keeps a full render well
+// under ~200 ms and the bitmap near 4 MB, while a 64× zoom still crops
+// to a ~16 px region — ample for chunky-pixel inspection. Hosts that
+// need crisper deep-zoom can raise Config.RenderEdge.
+const DefaultRenderEdge = 1024
 
 // Limits caps resource consumption when loading and rasterizing SVGs.
 // SVG is an untrusted-input format — a hostile document can nest
