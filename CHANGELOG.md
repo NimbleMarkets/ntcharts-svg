@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.1.2 (2026-05-19)
+
+ * Add `Image()` getter to extract the rendered SVG image.  Handy for caching.
+
 ## v0.1.1 (2026-05-17)
 
  * Add [GitHub pages demo](https://nimblemarkets.github.io/ntcharts-svg/) using [`booba`](https://github.com/NimbleMarkets/go-booba)

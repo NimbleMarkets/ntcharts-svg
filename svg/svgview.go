@@ -164,6 +164,12 @@ func (m Model) ViewBox() (w, h float64) {
 // successful operation.
 func (m Model) Err() error { return m.err }
 
+// Image returns the full-resolution rasterized bitmap from the most
+// recent successful render, or nil when nothing has been rasterized.
+// Hosts can cache the result and re-install it later with SetImage to
+// skip the load-and-rasterize round trip.
+func (m Model) Image() image.Image { return m.sourceImage }
+
 // KittySupported reports the terminal's Kitty graphics capability. The
 // probe runs once per process; expect KittyCapabilityUnknown for the
 // first few frames until the terminal responds.
@@ -243,6 +249,11 @@ func (m *Model) resetForLoad(name string) {
 // server pre-rasterizes and ships PNG bytes). Applies the current
 // viewport and returns picture's render Cmd.
 func (m *Model) SetImage(img image.Image) tea.Cmd {
+	// Bump both generation counters so any load or rasterize still in
+	// flight is superseded — its result would otherwise overwrite the
+	// caller-supplied bitmap when it lands in Update.
+	bump(m.loadGen)
+	bump(m.renderGen)
 	m.sourceImage = img
 	m.err = nil
 	return m.applyViewport()
@@ -519,14 +530,13 @@ func (m Model) View() tea.View {
 		return tea.NewView(m.placeholderView(m.style.Error,
 			fmt.Sprintf("error: %s", SanitizeForTerminal(m.err.Error()))))
 	}
-	if m.name == "" {
-		return tea.NewView(m.placeholderView(m.style.Status, "No SVG loaded"))
-	}
-	if m.doc == nil {
-		return tea.NewView(m.placeholderView(m.style.Status,
-			fmt.Sprintf("Loading %s…", SanitizeForTerminal(m.name))))
-	}
 	if m.mode == RasterMode && m.sourceImage != nil {
+		// A rasterized bitmap is shown as soon as one exists — even with
+		// no document, since SetImage installs caller-supplied bitmaps
+		// that have no parsed Document. This must win over the "Loading"
+		// placeholder so a SetImage during an unrelated in-flight load
+		// is not hidden behind it.
+		//
 		// Pin picture's content to the full (cols × rows) envelope so
 		// the host's surrounding border stays a stable size across
 		// mode and fit transitions.
@@ -535,6 +545,13 @@ func (m Model) View() tea.View {
 			pv.Content = lipgloss.Place(m.cols, m.rows, lipgloss.Left, lipgloss.Top, pv.Content)
 		}
 		return pv
+	}
+	if m.name == "" {
+		return tea.NewView(m.placeholderView(m.style.Status, "No SVG loaded"))
+	}
+	if m.doc == nil {
+		return tea.NewView(m.placeholderView(m.style.Status,
+			fmt.Sprintf("Loading %s…", SanitizeForTerminal(m.name))))
 	}
 	// InfoMode, or RasterMode with no bitmap yet.
 	content := m.renderInfoView()
