@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.2.0 (2026-05-24)
+
+ * Add Patterns and Text with `replace` to NimbleMarkets fork of `srwiley/oksvg`
+ * Input hardening
+
 ## v0.1.2 (2026-05-19)
 
  * Add `Image()` getter to extract the rendered SVG image.  Handy for caching.
