@@ -79,21 +79,21 @@ func (d *Document) Title() string {
 	return d.titles[0]
 }
 
-// histogram returns the element counts sorted by descending frequency
-// then name, for stable InfoMode rendering.
-func (d *Document) histogram() []struct {
+// HistogramItem represents a single SVG element type and its occurrence count.
+type HistogramItem struct {
 	Name  string
 	Count int
-} {
-	out := make([]struct {
-		Name  string
-		Count int
-	}, 0, len(d.counts))
+}
+
+// Histogram returns the element counts sorted by descending frequency
+// then name, for stable InfoMode rendering.
+func (d *Document) Histogram() []HistogramItem {
+	out := make([]HistogramItem, 0, len(d.counts))
 	for k, v := range d.counts {
-		out = append(out, struct {
-			Name  string
-			Count int
-		}{k, v})
+		out = append(out, HistogramItem{
+			Name:  k,
+			Count: v,
+		})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Count != out[j].Count {

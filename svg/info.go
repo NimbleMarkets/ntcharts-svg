@@ -46,7 +46,7 @@ func (m Model) renderInfoView() string {
 	// Element histogram, most frequent first. Capped to a handful of
 	// rows so a document with hundreds of distinct element types can't
 	// overflow the cell rectangle.
-	hist := d.histogram()
+	hist := d.Histogram()
 	const maxRows = 12
 	for i, e := range hist {
 		if i >= maxRows {

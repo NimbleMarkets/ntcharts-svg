@@ -236,9 +236,13 @@ func (m *Model) resetForLoad(name string) {
 		_ = m.cur.Close()
 		m.cur = nil
 	}
+	// Clear the document and image only if we are loading a different file/resource.
+	// Preserving them for the same name avoids screen flashing during streaming updates.
+	if m.name != name {
+		m.doc = nil
+		m.sourceImage = nil
+	}
 	m.name = name
-	m.doc = nil
-	m.sourceImage = nil
 	m.rendererErr = nil
 	m.zoom, m.panX, m.panY = 0, 0, 0
 	m.err = nil
@@ -448,6 +452,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case svgErrMsg:
 		if msg.gen == *m.loadGen {
 			m.err = msg.err
+			m.doc = nil
+			m.sourceImage = nil
 		}
 
 	case renderedMsg:
@@ -474,6 +480,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case renderErrMsg:
 		if msg.gen == *m.renderGen && msg.loadGen == *m.loadGen {
 			m.err = msg.err
+			m.sourceImage = nil
 		}
 	}
 
