@@ -11,6 +11,7 @@ package svg
 import (
 	"image"
 	"image/draw"
+	"math"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -39,7 +40,14 @@ type subImager interface {
 // viewportSize returns the normalized [0, 1] side length of the current
 // visible rectangle in source-image coords.
 func (m Model) viewportSize() float64 {
-	return 1.0 / float64(uint(1)<<uint(m.zoom))
+	z := m.zoom
+	if z < 0 {
+		z = 0
+	}
+	if z > 30 {
+		z = 30
+	}
+	return 1.0 / float64(uint(1)<<uint(z))
 }
 
 // viewportCenter returns the current viewport's center in normalized
@@ -63,6 +71,12 @@ func (m *Model) recenterTo(cx, cy float64) {
 // clampPan keeps the viewport rectangle inside [0, 1] × [0, 1]. Called
 // after every mutation of zoom or pan.
 func (m *Model) clampPan() {
+	if math.IsNaN(m.panX) || math.IsInf(m.panX, 0) {
+		m.panX = 0
+	}
+	if math.IsNaN(m.panY) || math.IsInf(m.panY, 0) {
+		m.panY = 0
+	}
 	vp := m.viewportSize()
 	if m.panX < 0 {
 		m.panX = 0
@@ -131,6 +145,15 @@ func (m *Model) applyViewport() tea.Cmd {
 func cropToViewport(src image.Image, zoom int, panX, panY float64) image.Image {
 	if src == nil || zoom <= 0 {
 		return src
+	}
+	if zoom > 30 {
+		zoom = 30
+	}
+	if math.IsNaN(panX) || math.IsInf(panX, 0) {
+		panX = 0
+	}
+	if math.IsNaN(panY) || math.IsInf(panY, 0) {
+		panY = 0
 	}
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()

@@ -82,7 +82,7 @@ func DefaultRendererFactoryWithLimits(limits Limits) RendererFactory {
 			return nil, fmt.Errorf("parse %q: %w", name, err)
 		}
 		vbW, vbH := icon.ViewBox.W, icon.ViewBox.H
-		if vbW <= 0 || vbH <= 0 {
+		if math.IsNaN(vbW) || math.IsNaN(vbH) || math.IsInf(vbW, 0) || math.IsInf(vbH, 0) || vbW <= 0 || vbH <= 0 {
 			// SVG spec default when a document declares neither a
 			// viewBox nor width/height.
 			vbW, vbH = 300, 150
@@ -144,11 +144,29 @@ func (r *oksvgRenderer) RenderRegion(maxW, maxH int, nx, ny, nw, nh float64) (im
 	if r.icon == nil {
 		return nil, errors.New("svg renderer closed")
 	}
-	if nw <= 0 {
-		nw = 1
+	if math.IsNaN(nx) || math.IsNaN(ny) || math.IsNaN(nw) || math.IsNaN(nh) ||
+		math.IsInf(nx, 0) || math.IsInf(ny, 0) || math.IsInf(nw, 0) || math.IsInf(nh, 0) {
+		return nil, errors.New("invalid region coordinates: NaN or Inf")
 	}
-	if nh <= 0 {
-		nh = 1
+	if nw < 1e-6 {
+		nw = 1e-6
+	} else if nw > 1.0 {
+		nw = 1.0
+	}
+	if nh < 1e-6 {
+		nh = 1e-6
+	} else if nh > 1.0 {
+		nh = 1.0
+	}
+	if nx < -2.0 {
+		nx = -2.0
+	} else if nx > 2.0 {
+		nx = 2.0
+	}
+	if ny < -2.0 {
+		ny = -2.0
+	} else if ny > 2.0 {
+		ny = 2.0
 	}
 	// The region carries the document's aspect ratio (the viewport is a
 	// square fraction of an aspect-correct bitmap), so it fits into the
@@ -187,7 +205,7 @@ func (r *oksvgRenderer) Close() error {
 // (d) keeps the total pixel count ≤ maxPixels. maxEdge / maxPixels ≤ 0
 // disable that clamp. The result is always at least 1 × 1.
 func fitDims(vbW, vbH float64, maxW, maxH, maxEdge, maxPixels int) (int, int) {
-	if vbW <= 0 || vbH <= 0 {
+	if math.IsNaN(vbW) || math.IsNaN(vbH) || math.IsInf(vbW, 0) || math.IsInf(vbH, 0) || vbW <= 0 || vbH <= 0 {
 		vbW, vbH = 300, 150
 	}
 	if maxW < 1 {
