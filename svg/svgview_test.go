@@ -89,6 +89,35 @@ func TestBrokenSVGIsError(t *testing.T) {
 	}
 }
 
+func TestMalformedSVGGenerous(t *testing.T) {
+	// A document with a valid root <svg> but malformed elements inside/after.
+	malformedSVG := []byte(`<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">
+  <rect x="0" y="0" width="200" height="100" fill="#222"/>
+  <circle cx="50" cy="50" r="20" fill="red"/>
+  <invalid-tag-syntax
+</svg>`)
+
+	m := loadData(t, New(80, 24), "malformed.svg", malformedSVG)
+
+	// Since it's generous, the load succeeds (m.Document() is non-nil), but
+	// there is a rendererErr/error returned.
+	if m.Document() == nil {
+		t.Fatal("expected non-nil Document for malformed SVG with valid root")
+	}
+	if m.RendererErr() == nil {
+		t.Fatal("expected non-nil RendererErr reporting the syntax/parsing error")
+	}
+	if !m.HasRenderer() {
+		t.Fatal("expected to have a renderer constructed anyway")
+	}
+
+	m = rasterize(t, m)
+	if m.sourceImage == nil {
+		t.Fatal("expected to be able to render/rasterize the partial SVG")
+	}
+}
+
 func TestRasterizeProducesImage(t *testing.T) {
 	m := loadData(t, New(80, 24), "fixture.svg", sampleSVG)
 	m = rasterize(t, m)

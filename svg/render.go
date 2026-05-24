@@ -78,7 +78,7 @@ func DefaultRendererFactoryWithLimits(limits Limits) RendererFactory {
 			return nil, fmt.Errorf("parse %q: empty svg data", name)
 		}
 		icon, err := parseIcon(data)
-		if err != nil {
+		if icon == nil {
 			return nil, fmt.Errorf("parse %q: %w", name, err)
 		}
 		vbW, vbH := icon.ViewBox.W, icon.ViewBox.H
@@ -87,13 +87,17 @@ func DefaultRendererFactoryWithLimits(limits Limits) RendererFactory {
 			// viewBox nor width/height.
 			vbW, vbH = 300, 150
 		}
-		return &oksvgRenderer{
+		r := &oksvgRenderer{
 			icon:      icon,
 			vbW:       vbW,
 			vbH:       vbH,
 			maxPixels: limits.MaxRenderPixels,
 			maxEdge:   limits.MaxRenderEdge,
-		}, nil
+		}
+		if err != nil {
+			return r, fmt.Errorf("parse %q: %w", name, err)
+		}
+		return r, nil
 	}
 }
 

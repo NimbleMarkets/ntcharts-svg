@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.2.1 (2026-05-24)
+
+ * Improve error handling with more leniency to allow rasterizing of somewhat malformed SVG
+
 ## v0.2.0 (2026-05-24)
 
  * Add Patterns and Text with `replace` to NimbleMarkets fork of `srwiley/oksvg`

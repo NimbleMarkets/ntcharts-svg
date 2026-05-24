@@ -194,9 +194,9 @@ func runLoadFromBytes(name string, data []byte, gen uint64, factory RendererFact
 		return svgErrMsg{err: errors.New("empty svg data"), gen: gen}
 	}
 
-	doc, err := scanMetadata(name, data, limits.MaxElements)
-	if err != nil {
-		return svgErrMsg{err: fmt.Errorf("parse %q: %w", name, err), gen: gen}
+	doc, scanErr := scanMetadata(name, data, limits.MaxElements)
+	if doc == nil {
+		return svgErrMsg{err: fmt.Errorf("parse %q: %w", name, scanErr), gen: gen}
 	}
 
 	// Renderer-open failure is non-fatal: InfoMode renders fine from
@@ -205,7 +205,11 @@ func runLoadFromBytes(name string, data []byte, gen uint64, factory RendererFact
 	var renderer Renderer
 	var rendererErr error
 	if factory != nil {
-		renderer, rendererErr = factory(name, data)
+		var fErr error
+		renderer, fErr = factory(name, data)
+		rendererErr = errors.Join(scanErr, fErr)
+	} else {
+		rendererErr = scanErr
 	}
 	return svgLoadedMsg{
 		name:        name,
@@ -233,6 +237,10 @@ func scanMetadata(name string, data []byte, maxElements int) (*Document, error) 
 			break
 		}
 		if err != nil {
+			if gotRoot {
+				doc.deriveSize()
+				return doc, err
+			}
 			return nil, err
 		}
 		switch t := tok.(type) {
