@@ -5,6 +5,9 @@ go 1.25.0
 // Awaiting upstream merge of WASM support
 replace charm.land/bubbletea/v2 => github.com/neomantra/bubbletea/v2 v2.0.0-20260506185856-6506c47fa2f3
 
+// Awaiting upstream merge of Pattern / Text Rendering
+replace github.com/srwiley/oksvg => github.com/NimbleMarkets/oksvg v0.0.0-20260524173604-31e0dcae4f04
+
 // booba-assets stages the WASM demo site (wasm_exec.js + the booba
 // terminal runtime) into web/ — see the build-wasm-site Taskfile task.
 tool github.com/NimbleMarkets/go-booba/cmd/booba-assets
