@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## v0.2.1 (2026-05-24)
+## v0.2.1 (2026-05-25)
 
  * Improve error handling with more leniency to allow rasterizing of somewhat malformed SVG
+ * Switch to `github.com/NimbleMarkets/oksvg` fork for Pattern, Text, Emoji, and Image support.
 
 ## v0.2.0 (2026-05-24)
 
