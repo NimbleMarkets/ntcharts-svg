@@ -18,7 +18,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/srwiley/oksvg"
+	"github.com/NimbleMarkets/oksvg" // fork of github.com/srwiley/oksvg
 	"github.com/srwiley/rasterx"
 )
 

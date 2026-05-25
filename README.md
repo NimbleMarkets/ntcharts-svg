@@ -180,7 +180,7 @@ SVG titles, descriptions, element names, and error messages can carry C0/C1 cont
 
 ## License
 
-Thanks to the [`oksvg`](https://github.com/srwiley/oksvg) and [`rasterx`](https://github.com/srwiley/rasterx) libraries and their authors.
+Thanks to the [`oksvg`](https://github.com/srwiley/oksvg) and [`rasterx`](https://github.com/srwiley/rasterx) libraries and their authors.  We are currently using [a fork]](https://github.com/NimbleMarkets/oksvg/tree/nm) of their `oksvg` library.
 
 [MIT License](./LICENSE.txt) — Copyright (c) 2026 [Neomantra Corp](https://www.neomantra.com).
 
