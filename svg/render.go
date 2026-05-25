@@ -191,6 +191,8 @@ func (r *oksvgRenderer) RenderRegion(maxW, maxH int, nx, ny, nw, nh float64) (im
 	fullW := float64(w) / nw
 	fullH := float64(h) / nh
 	r.icon.SetTarget(-nx*fullW, -ny*fullH, fullW, fullH)
+	r.icon.DrawTarget = dst
+	defer func() { r.icon.DrawTarget = nil }()
 	r.icon.Draw(raster, 1.0)
 	return dst, nil
 }
