@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.2.2 (2026-05-28)
+
+ * feat: Add Fit and Anchor properties
+
 ## v0.2.1 (2026-05-25)
 
  * Improve error handling with more leniency to allow rasterizing of somewhat malformed SVG

@@ -239,6 +239,36 @@ func TestFitDims(t *testing.T) {
 	}
 }
 
+func TestNewWithConfig_FitAndAnchor(t *testing.T) {
+	cfg := Config{
+		Fit:    FitCover,
+		Anchor: AnchorTop,
+	}
+	m := NewWithConfig(cfg)
+	if m.Fit() != FitCover {
+		t.Fatalf("expected Fit to be FitCover from Config, got %v", m.Fit())
+	}
+	if m.Anchor() != AnchorTop {
+		t.Fatalf("expected Anchor to be AnchorTop from Config, got %v", m.Anchor())
+	}
+}
+
+func TestNewWithConfig_FitAndAnchor_PictureConfigPrecedence(t *testing.T) {
+	cfg := Config{
+		Fit:    FitCover,
+		Anchor: AnchorTop,
+	}
+	cfg.PictureConfig.Fit = FitFill
+	cfg.PictureConfig.Anchor = AnchorBottom
+	m := NewWithConfig(cfg)
+	if m.Fit() != FitFill {
+		t.Fatalf("expected Fit to be FitFill from PictureConfig, got %v", m.Fit())
+	}
+	if m.Anchor() != AnchorBottom {
+		t.Fatalf("expected Anchor to be AnchorBottom from PictureConfig, got %v", m.Anchor())
+	}
+}
+
 func TestModel_SetFit_Forwards(t *testing.T) {
 	m := New(80, 24)
 	if m.Fit() != FitContain {
