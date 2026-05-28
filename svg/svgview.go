@@ -110,6 +110,13 @@ func NewWithConfig(cfg Config) Model {
 		styles = *cfg.Styles
 	}
 
+	if cfg.Fit != 0 && cfg.PictureConfig.Fit == 0 {
+		cfg.PictureConfig.Fit = cfg.Fit
+	}
+	if cfg.Anchor != 0 && cfg.PictureConfig.Anchor == 0 {
+		cfg.PictureConfig.Anchor = cfg.Anchor
+	}
+
 	var lg, rg uint64
 	m := Model{
 		cfg:       cfg,
@@ -270,6 +277,28 @@ func (m *Model) SetImage(img image.Image) tea.Cmd {
 	return m.applyViewport()
 }
 
+// Renderer returns the active Renderer of the loaded document, or nil.
+func (m Model) Renderer() Renderer {
+	return m.cur
+}
+
+// SetImageAndRenderer installs a caller-supplied rasterized bitmap along with its
+// document renderer and document info, bypassing the async loader while preserving
+// vector-sharp zoom capabilities.
+func (m *Model) SetImageAndRenderer(img image.Image, r Renderer, doc *Document) tea.Cmd {
+	bump(m.loadGen)
+	bump(m.renderGen)
+	if m.cur != nil && m.cur != r {
+		_ = m.cur.Close()
+	}
+	m.cur = r
+	m.doc = doc
+	m.sourceImage = img
+	m.err = nil
+	return m.applyViewport()
+}
+
+
 // ToggleMode swaps Raster↔Info. Switching into RasterMode renders the
 // SVG when no bitmap is cached yet; switching to InfoMode clears the
 // picture image so the terminal doesn't leave a stale Kitty placement.
@@ -350,6 +379,19 @@ func (m *Model) CycleFit() tea.Cmd {
 		next = FitContain
 	}
 	return m.pic.SetFit(next)
+}
+
+// SetFit updates the FitMode. Forwards to the embedded picture.Model.
+func (m *Model) SetFit(fit FitMode) tea.Cmd {
+	return m.pic.SetFit(fit)
+}
+
+// Anchor returns the current FitAnchor.
+func (m Model) Anchor() FitAnchor { return m.pic.Anchor() }
+
+// SetAnchor updates the FitAnchor. Forwards to the embedded picture.Model.
+func (m *Model) SetAnchor(anchor FitAnchor) tea.Cmd {
+	return m.pic.SetAnchor(anchor)
 }
 
 // ResetView snaps zoom to 0 and pan to the origin (fit-to-rect, no crop).

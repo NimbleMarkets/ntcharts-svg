@@ -47,6 +47,18 @@ const (
 	FitCover   = picture.FitCover   // preserve aspect ratio, crop to fill
 )
 
+// FitAnchor controls which edge or center is preserved when FitCover must
+// crop overflow. Re-exported from picture.
+type FitAnchor = picture.FitAnchor
+
+const (
+	AnchorCenter = picture.AnchorCenter // center crop (default)
+	AnchorTop    = picture.AnchorTop
+	AnchorBottom = picture.AnchorBottom
+	AnchorLeft   = picture.AnchorLeft
+	AnchorRight  = picture.AnchorRight
+)
+
 // DefaultRenderEdge is the target length, in pixels, of the longer edge
 // of the rasterized bitmap when Config.RenderEdge is unset. The SVG is
 // drawn once at this resolution; ZoomIn then crops into the bitmap, so a
@@ -206,6 +218,15 @@ type Config struct {
 	// valued fields use sensible defaults (see Limits); set a field to
 	// -1 to disable that specific cap for trusted input.
 	Limits Limits
+
+	// Fit controls how the rasterized image is mapped onto the cell
+	// rectangle. The zero value is FitContain (preserve aspect ratio,
+	// letterbox).
+	Fit FitMode
+
+	// Anchor controls which edge or center is preserved when FitCover must
+	// crop overflow. Zero value is AnchorCenter.
+	Anchor FitAnchor
 
 	// PictureConfig is forwarded verbatim to the underlying picture.Model.
 	PictureConfig picture.Config

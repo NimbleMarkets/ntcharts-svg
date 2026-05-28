@@ -239,6 +239,28 @@ func TestFitDims(t *testing.T) {
 	}
 }
 
+func TestModel_SetFit_Forwards(t *testing.T) {
+	m := New(80, 24)
+	if m.Fit() != FitContain {
+		t.Fatalf("expected initial Fit to be FitContain, got %v", m.Fit())
+	}
+	_ = m.SetFit(FitCover)
+	if m.Fit() != FitCover {
+		t.Fatalf("expected Fit to be FitCover after SetFit, got %v", m.Fit())
+	}
+}
+
+func TestModel_SetAnchor_Forwards(t *testing.T) {
+	m := New(80, 24)
+	if m.Anchor() != AnchorCenter {
+		t.Fatalf("expected initial Anchor to be AnchorCenter, got %v", m.Anchor())
+	}
+	_ = m.SetAnchor(AnchorTop)
+	if m.Anchor() != AnchorTop {
+		t.Fatalf("expected Anchor to be AnchorTop after SetAnchor, got %v", m.Anchor())
+	}
+}
+
 // TestMain keeps `go test` output quiet about the testdata dir absence
 // when run from unusual working directories.
 func TestMain(m *testing.M) { os.Exit(m.Run()) }
