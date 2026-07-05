@@ -10,9 +10,9 @@ replace charm.land/bubbletea/v2 => github.com/neomantra/bubbletea/v2 v2.0.0-2026
 tool github.com/NimbleMarkets/go-booba/cmd/booba-assets
 
 require (
-	charm.land/bubbles/v2 v2.1.0
-	charm.land/bubbletea/v2 v2.0.6
-	charm.land/lipgloss/v2 v2.0.3
+	charm.land/bubbles/v2 v2.1.1
+	charm.land/bubbletea/v2 v2.0.7
+	charm.land/lipgloss/v2 v2.0.4
 	github.com/NimbleMarkets/go-booba v0.6.1-0.20260511134559-58814d532cc1
 	github.com/NimbleMarkets/ntcharts/v2 v2.2.0
 	github.com/NimbleMarkets/oksvg v0.0.0-20260525184950-fdc0be96c4cc
@@ -31,7 +31,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
-	github.com/mattn/go-runewidth v0.0.23 // indirect
+	github.com/mattn/go-runewidth v0.0.24 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
