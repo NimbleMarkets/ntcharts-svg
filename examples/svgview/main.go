@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
@@ -118,6 +119,12 @@ type model struct {
 }
 
 func initialModel(cfg svg.Config) model {
+	// Booba 0.7 receives raw RGBA through its browser shared-memory bridge,
+	// avoiding PNG encoding and base64 transport. Keep direct PNG on native
+	// terminals, which may be remote or lack shared-memory support.
+	if runtime.GOOS == "js" {
+		cfg.PictureConfig.KittyMedium = picture.KittyMediumSharedMemory
+	}
 	return model{
 		sv:   svg.NewWithConfig(cfg),
 		help: help.New(),

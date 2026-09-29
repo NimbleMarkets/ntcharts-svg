@@ -192,9 +192,12 @@ func (m Model) HasRenderer() bool { return m.cur != nil }
 // unavailable. Cleared on the next load.
 func (m Model) RendererErr() error { return m.rendererErr }
 
-// Close releases any renderer-side resources held by the loaded
+// Close releases picture transport and renderer-side resources held by the loaded
 // document. Safe to call when nothing is loaded.
 func (m *Model) Close() error {
+	// Shared-memory frames must be released even for caller-supplied images
+	// that have no SVG renderer. Terminal cleanup is unnecessary on disposal.
+	_ = m.pic.SetImage(nil)
 	if m.cur == nil {
 		return nil
 	}
@@ -297,7 +300,6 @@ func (m *Model) SetImageAndRenderer(img image.Image, r Renderer, doc *Document) 
 	m.err = nil
 	return m.applyViewport()
 }
-
 
 // ToggleMode swaps Raster↔Info. Switching into RasterMode renders the
 // SVG when no bitmap is cached yet; switching to InfoMode clears the

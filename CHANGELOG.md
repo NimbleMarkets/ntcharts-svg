@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## Unreleased
+
+ * Upgrade ntcharts to v2.4.0, gaining faster Kitty PNG encoding and opt-in RGBA/shared-memory transport.
+ * Upgrade the WASM demo to booba v0.7.0 and the matching Bubble Tea fork; use shared-memory RGBA frames in the browser with direct PNG fallback.
+ * Release picture transport resources in `Model.Close`, including caller-supplied images without an SVG renderer.
+ * Require Go 1.26.8 or newer.
+
 ## v0.2.2 (2026-05-28)
 
  * feat: Add Fit and Anchor properties

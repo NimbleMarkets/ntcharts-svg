@@ -1,0 +1,48 @@
+//go:build js && wasm
+
+package svg
+
+import (
+	"image"
+	"syscall/js"
+	"testing"
+
+	"github.com/NimbleMarkets/ntcharts/v2/picture"
+)
+
+func TestBrowserSharedMemoryLifecycle(t *testing.T) {
+	old := js.Global().Get("ghosttyKittySharedMemory")
+	registry := js.Global().Get("Map").New()
+	js.Global().Set("ghosttyKittySharedMemory", registry)
+	t.Cleanup(func() { js.Global().Set("ghosttyKittySharedMemory", old) })
+	picture.ForceKittyCapability(picture.KittyCapabilitySupported)
+	t.Cleanup(func() { picture.ForceKittyCapability(picture.KittyCapabilityUnknown) })
+
+	m := NewWithConfig(Config{Cols: 2, Rows: 2, PictureConfig: picture.Config{
+		KittyMedium: picture.KittyMediumSharedMemory,
+	}})
+	defer m.Close()
+	m.ToggleRenderMode()
+	cmd := m.SetImage(image.NewNRGBA(image.Rect(0, 0, 2, 2)))
+	frame := cmd().(picture.KittyFrameMsg)
+	if frame.Medium != picture.KittyMediumSharedMemory || frame.Format != picture.KittyFormatRGBA {
+		t.Fatalf("expected shared-memory RGBA, got medium=%v format=%v", frame.Medium, frame.Format)
+	}
+	m, _ = m.Update(frame)
+	if registry.Get("size").Int() != 1 {
+		t.Fatal("expected one pending shared-memory frame")
+	}
+	if err := m.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if registry.Get("size").Int() != 0 {
+		t.Fatal("Close leaked shared-memory frame without an SVG renderer")
+	}
+
+	// Older browser terminals must still render through direct PNG.
+	js.Global().Set("ghosttyKittySharedMemory", js.Undefined())
+	frame = m.SetImage(image.NewNRGBA(image.Rect(0, 0, 2, 2)))().(picture.KittyFrameMsg)
+	if frame.Medium != picture.KittyMediumDirect || frame.Format != picture.KittyFormatPNG {
+		t.Fatalf("expected direct PNG fallback, got medium=%v format=%v", frame.Medium, frame.Format)
+	}
+}

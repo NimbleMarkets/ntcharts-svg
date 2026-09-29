@@ -61,6 +61,8 @@ Toggle Raster ↔ Info with `m`, swap Glyph ↔ Kitty with `g`, zoom with `+` / 
 
 ## Demo
 
+Building requires Go 1.26.8 or newer.
+
 A fuller demo lives at [`examples/svgview`](./examples/svgview/main.go) — adds a status bar, help bubble, and the `c` / `e` keys that generate and export a chart at runtime.
 
 ```sh
@@ -75,6 +77,14 @@ task serve-wasm-site   # builds web/app.wasm, stages booba assets, serves at :80
 ```
 
 `task build-wasm-site` alone produces the deployable `web/` directory; the `.github/workflows/pages.yml` workflow publishes it to GitHub Pages on every push to `main`.
+
+The browser demo uses booba v0.7.0 and requests ntcharts' Kitty shared-memory
+transport, passing raw RGBA frames without PNG encoding or base64 image payloads.
+It falls back to direct PNG when the browser bridge is unavailable. Native builds
+keep direct PNG transport. Library callers can opt in through
+`Config.PictureConfig.KittyMedium` and select a direct format through
+`Config.PictureConfig.KittyFormat`; call `Model.Close()` when disposing the widget
+to release pending shared-memory frames.
 
 ## Modes
 

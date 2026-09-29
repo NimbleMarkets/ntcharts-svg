@@ -25,3 +25,5 @@ jobs:
         run: go build ./...
       - name: Build WASM
         run: GOARCH=wasm GOOS=js go build ./examples/svgview/
+      - name: Test browser picture transport
+        run: GOARCH=wasm GOOS=js go test -exec="$(go env GOROOT)/lib/wasm/go_js_wasm_exec" ./svg -run TestBrowserSharedMemoryLifecycle -v

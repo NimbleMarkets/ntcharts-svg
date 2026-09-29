@@ -70,6 +70,11 @@
         import { BoobaTerminal } from './booba/booba.js';
 
         async function main() {
+            // Initialize booba's renderer and shared-memory image bridge
+            // before the Go program can produce Kitty frames.
+            const booba = new BoobaTerminal('terminal-container');
+            await booba.init();
+
             // Load and start the Go WASM binary. The SVG rasterizer is
             // pure Go, so RasterMode works in the browser with no JS
             // bridge — unlike the sibling ntcharts-pdf demo.
@@ -78,10 +83,6 @@
                 fetch('app.wasm'), go.importObject
             );
             go.run(result.instance);
-
-            // Initialize the terminal emulator.
-            const booba = new BoobaTerminal('terminal-container');
-            await booba.init();
 
             // Connect via WASM adapter (polls bubbletea_read at ~60fps).
             booba.connectWasm();
