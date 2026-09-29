@@ -111,6 +111,7 @@ type model struct {
 	help          help.Model
 	keys          appKeys
 	width, height int
+	preferKitty   bool // pending automatic selection; cleared by a manual toggle
 
 	// lastChart holds the most recently generated demo Canvas so the
 	// export key has something to write.
@@ -126,9 +127,10 @@ func initialModel(cfg svg.Config) model {
 		cfg.PictureConfig.KittyMedium = picture.KittyMediumSharedMemory
 	}
 	return model{
-		sv:   svg.NewWithConfig(cfg),
-		help: help.New(),
-		keys: newAppKeys(),
+		sv:          svg.NewWithConfig(cfg),
+		help:        help.New(),
+		keys:        newAppKeys(),
+		preferKitty: true,
 	}
 }
 
@@ -170,6 +172,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.resize()
 
 	case tea.KeyMsg:
+		if key.Matches(msg, m.sv.KeyMap().ToggleRender) {
+			m.preferKitty = false
+		}
 		switch msg.String() {
 		case "ctrl+c", "q":
 			_ = m.sv.Close()
@@ -197,6 +202,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.sv, cmd = m.sv.Update(msg)
+	// Update consumes the asynchronous capability reply. Keep waiting after
+	// a timeout, since a late positive reply can still establish support.
+	if m.preferKitty && m.sv.KittySupported() == picture.KittyCapabilitySupported {
+		m.preferKitty = false
+		if m.sv.RenderMode() != svg.RenderKitty {
+			cmd = tea.Batch(cmd, m.sv.ToggleRenderMode())
+		}
+	}
 	return m, cmd
 }
 

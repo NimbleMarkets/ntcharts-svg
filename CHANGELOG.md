@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+ * Default the demo to Kitty graphics once support is detected, preserving manual `g` toggles and glyph fallback.
  * Upgrade ntcharts to v2.4.0, gaining faster Kitty PNG encoding and opt-in RGBA/shared-memory transport.
  * Upgrade the WASM demo to booba v0.7.0 and the matching Bubble Tea fork; use shared-memory RGBA frames in the browser with direct PNG fallback.
  * Release picture transport resources in `Model.Close`, including caller-supplied images without an SVG renderer.

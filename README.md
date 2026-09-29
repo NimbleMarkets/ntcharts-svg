@@ -65,6 +65,9 @@ Building requires Go 1.26.8 or newer.
 
 A fuller demo lives at [`examples/svgview`](./examples/svgview/main.go) — adds a status bar, help bubble, and the `c` / `e` keys that generate and export a chart at runtime.
 
+The demo automatically selects Kitty graphics when terminal support is detected,
+and otherwise uses glyph rendering. Press `g` to choose the rendering mode manually.
+
 ```sh
 task build-ex-svgview
 ./bin/ntcharts-svgview path/to/your.svg   # or no argument for the embedded sample
