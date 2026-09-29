@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## v0.3.0 (2026-09-28)
 
  * Default the demo to Kitty graphics once support is detected, preserving manual `g` toggles and glyph fallback.
  * Upgrade ntcharts to v2.4.0, gaining faster Kitty PNG encoding and opt-in RGBA/shared-memory transport.
